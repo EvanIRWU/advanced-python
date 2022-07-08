@@ -3,7 +3,6 @@ import threading
 from queue import Queue
 import socket
 import re
-import errno
 import time
 
 def scan_all_ports(host):
