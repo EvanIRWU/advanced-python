@@ -23,15 +23,25 @@ def get_links(text):
 def get_request(host):
     try:
         r = requests.get(host, verify=False, timeout=3)
-        print(f"[{r.status_code}] Found {host}", end=" ")  # | Title: {title}")
+        print_line = f"[{r.status_code}] Found {host}"
+        # print(f"[{r.status_code}] Found {host}", end=" ")  # | Title: {title}")
         if args.title:
             title = get_title(r.text)
-            print(f"| Title {title}", end=" ")
+            print_line += f" | Title {title}"
         if args.links:
             links = get_links(r.text)
             # Check to see is link startswith http(s), if it does, pass, else append variable host to the link.
-            print(f"| Links ", end="")
-            print(*links, sep=f', ')
+            for counter, link in enumerate(links):
+                link = link.strip()
+                if not link.startswith("http://") or not link.startswith("https://"):
+                    if link.startswith("/"):
+                        links[counter] = f"{host}{link}"
+                    else:
+                        links[counter] = f"{host}/{link}"
+
+            print_line += f" | Links {' '.join(links)}"
+        print(print_line)
+
     except (requests.RequestException, requests.exceptions.SSLError):
         print(f"Not Reachable: {host}")
 
@@ -41,15 +51,14 @@ def get_hosts(content):
         host = host.strip()
         if not host.startswith("#") and (host.startswith("http://") or host.startswith("https://")):
             get_request(host)
-        elif host.startswith("#") or args.skip:  # or args.http or args.https:
+        elif host.startswith("#") or args.skip:
             pass
-        # Add option if user wants to auto-extend protocol (add argument --skip to skip this step)
         elif args.http:
             get_request(f"http://{host}")
         elif args.https:
             get_request(f"https://{host}")
         else:
-            print(f"There does not appear to be an http(s):// in the URL provided {host}")
+            print(f"There does not appear to be an http(s):// in the URL: {host}")
 
 
 def print_error():
@@ -61,7 +70,7 @@ def print_error():
 
 
 def argument_check():
-    if args.file is not None and args.host is not None:
+    if args.file is not None and args.url is not None:
         print_error()
 
     if args.skip and (args.http or args.https):
@@ -74,12 +83,12 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-f', '--file', type=argparse.FileType('r'), help='Input a file to be parsed.')
-    parser.add_argument('-H', '--host', type=str, help='Input a file to be parsed.')
-    parser.add_argument('-s', '--skip', action='store_true', help='Input a file to be parsed.')
-    parser.add_argument('-p', '--http', action='store_true', help='Input a file to be parsed.')
-    parser.add_argument('-ps', '--https', action='store_true', help='Input a file to be parsed.')
-    parser.add_argument('-t', '--title', action='store_true', help='Input a file to be parsed.')
-    parser.add_argument('-l', '--links', action='store_true', help='Input a file to be parsed.')
+    parser.add_argument('-u', '--url', type=str, help='Input URL.')
+    parser.add_argument('-s', '--skip', action='store_true', help='Skips any URLs that do not have http/https.')
+    parser.add_argument('-p', '--http', action='store_true', help='Forces any URLs that do not have http/https to have http:// URL.')
+    parser.add_argument('-ps', '--https', action='store_true', help='Forces any URLs that do not have http/https to have https:// URL.')
+    parser.add_argument('-t', '--title', action='store_true', help='Parses the title from the website.')
+    parser.add_argument('-l', '--links', action='store_true', help='Parses the links from the website.')
 
     return parser
 
@@ -88,9 +97,9 @@ def main():
 
     argument_check()
 
-    if args.host:
-        host = args.host
-        get_hosts([host])
+    if args.url:
+        url = args.url
+        get_hosts([url])
     if args.file:
         file_content = args.file.readlines()
         get_hosts(file_content)
