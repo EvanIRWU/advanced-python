@@ -21,8 +21,9 @@ def scan_specific_ports(host, ports):
 # 	except OSError:
 # 		return "Unknown"
 def connect_to_port(host):
-	while True:
+	while not q.empty():
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 		try:
 			port = q.get()
 			s.connect((host, port))
@@ -55,6 +56,8 @@ if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",args.ip):
 
 target = args.ip
 ports = args.port
+
+socket.setdefaulttimeout(0.30)
 
 q = Queue()
 
