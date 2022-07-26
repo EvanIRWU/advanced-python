@@ -80,6 +80,9 @@ def arg_check():
     if (args.file is not None and args.url is not None) or (not sys.stdin.isatty() and args.file is not None) or (not sys.stdin.isatty() and args.url is not None):
         print_error()
 
+    if args.file is None and args.url is None and sys.stdin.isatty():
+        print("No arguments specfied! Use python request.py -h to see the help menu.")
+
     if args.skip and (args.http or args.https):
         print("Cant use --skip with --http/s")
         exit()
@@ -113,8 +116,19 @@ def remove_http(host):
             port = 443
         if ":" not in url:
             return [url, port]
+        else:
+            url, port = url.split(':')[0], url.split(':')[1]
+            return [url, port]
 
-        return url
+
+def connect_to_socket(host, port):
+    if port != 0:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((host, int(port)))
+                print(f"The host {host}:{port} has successfully connected.")
+        except ConnectionRefusedError:
+            print(f"The host {host}:{port} was not able to connect.")
 
 
 def main():
@@ -132,11 +146,11 @@ def main():
         check_url(url)
 
     if args.connect:
-        url = remove_http([url])
-        url = url.split(':')
-        domain_name, port = url[0], url[1]
-        print(domain_name, port)
-        print(socket.gethostbyname('google.com'))
+        for urls in url:
+            new_url = remove_http([urls])
+            domain_name, port = new_url[0], new_url[1]
+            connect_to_socket(domain_name, port)
+            # print(socket.gethostbyname('google.com'))
 
 
 args = get_args().parse_args()
